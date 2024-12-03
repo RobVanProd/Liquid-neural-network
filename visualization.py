@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Dict, List, Optional, Union
 from torch.utils.tensorboard import SummaryWriter
-import plotly.graph_objects as go
-import plotly.express as px
 from sklearn.manifold import TSNE
 
 class NetworkVisualizer:
@@ -61,18 +59,18 @@ class NetworkVisualizer:
         if activations.dim() > 2:
             activations = activations.mean(dim=0)
         
-        fig = go.Figure(data=go.Heatmap(
-            z=activations.detach().cpu().numpy(),
-            colorscale='Viridis'
-        ))
+        # Create matplotlib figure
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(activations.detach().cpu().numpy(),
+                   cmap='viridis',
+                   ax=ax)
+        ax.set_title(f'Activation Pattern - {layer_name}')
+        ax.set_xlabel('Neuron Index')
+        ax.set_ylabel('Sample Index')
         
-        fig.update_layout(
-            title=f'Activation Pattern - {layer_name}',
-            xaxis_title='Neuron Index',
-            yaxis_title='Sample Index'
-        )
-        
+        # Add to TensorBoard
         self.writer.add_figure(f'activations/{layer_name}', fig, step)
+        plt.close()
         
     def plot_gradient_flow(self, named_parameters: Dict[str, torch.Tensor]):
         """Visualize gradient flow through the network"""
@@ -84,18 +82,13 @@ class NetworkVisualizer:
                 layers.append(n)
                 ave_grads.append(p.grad.abs().mean().cpu().item())
                 
-        fig = go.Figure(data=go.Bar(
-            x=layers,
-            y=ave_grads,
-            name='Average Gradient'
-        ))
-        
-        fig.update_layout(
-            title='Gradient Flow',
-            xaxis_title='Layers',
-            yaxis_title='Average Gradient',
-            xaxis_tickangle=-45
-        )
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.bar(range(len(ave_grads)), ave_grads, alpha=0.5, align='center')
+        ax.set_title('Gradient Flow')
+        ax.set_xlabel('Layers')
+        ax.set_ylabel('Average Gradient')
+        plt.xticks(range(len(ave_grads)), layers, rotation=45)
+        plt.tight_layout()
         
         return fig
     
@@ -107,24 +100,18 @@ class NetworkVisualizer:
         tsne = TSNE(n_components=2, random_state=42)
         states_2d = tsne.fit_transform(hidden_states.detach().cpu().numpy())
         
+        fig, ax = plt.subplots(figsize=(10, 8))
+        scatter = ax.scatter(states_2d[:, 0], states_2d[:, 1],
+                           c=labels.cpu().numpy() if labels is not None else None,
+                           cmap='viridis')
+        
         if labels is not None:
-            fig = px.scatter(
-                x=states_2d[:, 0],
-                y=states_2d[:, 1],
-                color=labels.cpu().numpy(),
-                title='Hidden State Space Visualization'
-            )
-        else:
-            fig = px.scatter(
-                x=states_2d[:, 0],
-                y=states_2d[:, 1],
-                title='Hidden State Space Visualization'
-            )
+            plt.colorbar(scatter)
             
-        fig.update_layout(
-            xaxis_title='t-SNE Component 1',
-            yaxis_title='t-SNE Component 2'
-        )
+        ax.set_title('Hidden State Space Visualization')
+        ax.set_xlabel('t-SNE Component 1')
+        ax.set_ylabel('t-SNE Component 2')
+        plt.tight_layout()
         
         return fig
     
@@ -134,19 +121,15 @@ class NetworkVisualizer:
         """Visualize attention weights"""
         weights = attention_weights.detach().cpu().numpy()
         
-        fig = go.Figure(data=go.Heatmap(
-            z=weights,
-            colorscale='Viridis'
-        ))
-        
-        fig.update_layout(
-            title='Attention Weights Visualization',
-            xaxis_title='Key',
-            yaxis_title='Query'
-        )
+        fig, ax = plt.subplots(figsize=(10, 8))
+        sns.heatmap(weights, cmap='viridis', ax=ax)
+        ax.set_title('Attention Weights Visualization')
+        ax.set_xlabel('Key')
+        ax.set_ylabel('Query')
+        plt.tight_layout()
         
         if save_path:
-            fig.write_html(save_path)
+            plt.savefig(save_path)
             
         return fig
     

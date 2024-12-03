@@ -16,10 +16,10 @@ class LiquidS4Cell(nn.Module):
         self.d_model = d_model
 
         # Learn continuous-time parameters
-        self.Lambda = nn.Parameter(torch.randn(N, dtype=torch.complex64))
-        self.P = nn.Parameter(torch.randn(N, d_model, dtype=torch.complex64))
-        self.Q = nn.Parameter(torch.randn(d_model, N, dtype=torch.complex64))
-        self.B = nn.Parameter(torch.randn(N, dtype=torch.complex64))
+        self.Lambda = nn.Parameter(torch.randn(N, dtype=torch.float32))
+        self.P = nn.Parameter(torch.randn(d_model, N, dtype=torch.float32) / np.sqrt(N))
+        self.Q = nn.Parameter(torch.randn(N, d_model, dtype=torch.float32) / np.sqrt(N))
+        self.B = nn.Parameter(torch.randn(N, dtype=torch.float32))
 
         # Time step parameters
         log_dt = torch.rand(1) * (np.log(dt_max) - np.log(dt_min)) + np.log(dt_min)
@@ -32,25 +32,30 @@ class LiquidS4Cell(nn.Module):
         Returns:
             Output tensor of shape (batch, length, d_model)
         """
+        batch_size = u.size(0)
+        seq_len = u.size(1)
+        
+        # Initialize state
+        x = torch.zeros(batch_size, self.N, device=u.device)
+        outputs = []
+
         dt = torch.exp(self.log_dt)
         L = -torch.exp(self.Lambda)  # ensure eigenvalues have negative real part
         
         # Discretize continuous-time system
-        A = torch.diag(torch.exp(dt * L))
-        B = dt * self.B
-        C = self.P
-        D = torch.zeros(self.d_model, self.d_model, dtype=torch.complex64, device=u.device)
-
-        # State space computation
-        x = torch.zeros(u.shape[0], self.N, dtype=torch.complex64, device=u.device)
-        outputs = []
-
-        for t in range(u.shape[1]):
-            x = A @ x + B.unsqueeze(0) * u[:, t:t+1]
-            y = (C @ x.unsqueeze(-1)).squeeze(-1) + D @ u[:, t]
+        A = torch.diag(torch.exp(dt * L))  # [N, N]
+        B = dt * self.B  # [N]
+        
+        # Process sequence
+        for t in range(seq_len):
+            # Update state: x = Ax + Bu
+            x = torch.matmul(x, A.T) + B.unsqueeze(0) * u[:, t]  # [batch, N]
+            
+            # Compute output: y = Px
+            y = torch.matmul(x, self.Q)  # [batch, d_model]
             outputs.append(y)
 
-        return torch.stack(outputs, dim=1).real
+        return torch.stack(outputs, dim=1)  # [batch, seq_len, d_model]
 
 class LiquidS4Layer(nn.Module):
     """

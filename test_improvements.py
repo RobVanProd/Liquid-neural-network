@@ -9,22 +9,31 @@ import os
 def generate_synthetic_data(batch_size: int, seq_length: int, input_size: int):
     """Generate synthetic sequential data for testing"""
     # Generate sinusoidal data with different frequencies
-    t = torch.linspace(0, 8*np.pi, seq_length)
-    frequencies = torch.randn(batch_size, 1) * 0.5 + 1.0  # Random frequencies
+    t = torch.linspace(0, 8*np.pi, seq_length).unsqueeze(0).unsqueeze(-1)  # [1, seq_length, 1]
+    frequencies = torch.randn(batch_size, 1, 1) * 0.5 + 1.0  # [batch_size, 1, 1]
     
-    # Create input sequences
-    x = torch.sin(frequencies * t.unsqueeze(0))
-    # Add more features
-    x = torch.cat([
-        x,
-        torch.sin(2 * frequencies * t.unsqueeze(0)),
-        torch.cos(frequencies * t.unsqueeze(0))
-    ], dim=-1)
+    # Create base signals with proper broadcasting
+    base_signals = []
+    for i in range(min(3, input_size)):
+        if i == 0:
+            signal = torch.sin(frequencies * t)  # [batch_size, seq_length, 1]
+        elif i == 1:
+            signal = torch.sin(2 * frequencies * t)
+        else:
+            signal = torch.cos(frequencies * t)
+        base_signals.append(signal)
     
-    # Expand to desired input size
+    # Concatenate base signals along feature dimension
+    x = torch.cat(base_signals, dim=-1)  # [batch_size, seq_length, min(3, input_size)]
+    
+    # If we need more features, repeat the pattern
     if input_size > x.size(-1):
-        x = torch.cat([x] * (input_size // x.size(-1) + 1), dim=-1)
-    x = x[:, :, :input_size]
+        repeats = input_size // x.size(-1) + 1
+        x = torch.cat([x] * repeats, dim=-1)
+        x = x[:, :, :input_size]  # [batch_size, seq_length, input_size]
+    
+    # Add some noise
+    x = x + torch.randn_like(x) * 0.1
     
     # Generate target: predict next value in sequence
     y = torch.roll(x, shifts=-1, dims=1)
@@ -47,11 +56,14 @@ def test_models():
     # Initialize visualizer
     visualizer = NetworkVisualizer(log_dir='runs/test_models')
     
+    print("Generating synthetic data...")
     # Generate data
     x, y = generate_synthetic_data(batch_size, seq_length, input_size)
+    print(f"Input shape: {x.shape}")
+    print(f"Target shape: {y.shape}")
     
     # Test Liquid-S4 Model
-    print("Testing Liquid-S4 Model...")
+    print("\nTesting Liquid-S4 Model...")
     s4_model = LiquidS4Model(input_size, hidden_size, output_size)
     s4_output = s4_model(x)
     print(f"Liquid-S4 output shape: {s4_output.shape}")
