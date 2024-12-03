@@ -9,6 +9,9 @@ A sophisticated self-improving neural network with dynamic temporal learning cap
 - **Transformer-based Attention**: Sophisticated pattern recognition using attention mechanisms
 - **Neuro-evolution Module**: Self-improvement capabilities through evolutionary algorithms
 - **Advanced Visualization**: Comprehensive visualization tools for network analysis
+- **Liquid-S4 Architecture**: Enhanced sequence modeling with state-space formulation
+- **CfC Models**: Efficient continuous-time processing
+- **Advanced Visualization Tools**: Comprehensive analysis and debugging capabilities
 
 ## 🛠️ Components
 
@@ -17,11 +20,18 @@ A sophisticated self-improving neural network with dynamic temporal learning cap
    - Multi-scale liquid layers
    - Self-improvement mechanisms
    - Visualization utilities
-
-2. **super_test.py**
+2. **liquid_s4.py**
+   - Implementation of Liquid-S4 architecture
+3. **cfc_model.py**
+   - Implementation of CfC models
+4. **visualization.py**
+   - Comprehensive visualization tools
+5. **super_test.py**
    - Complex data generation
    - Multi-dataset testing framework
    - Performance evaluation
+6. **test_improvements.py**
+   - Test suite for new features
 
 ## 📊 Supported Datasets
 
@@ -46,6 +56,9 @@ pip install -r requirements.txt
 ### Basic Usage
 ```python
 from super_liquid_network import SuperLiquidNetwork
+from liquid_s4 import LiquidS4Model
+from cfc_model import CfCModel
+from visualization import NetworkVisualizer
 from super_test import generate_complex_datasets
 
 # Create model
@@ -54,6 +67,15 @@ model = SuperLiquidNetwork(
     hidden_size=64,
     output_size=1
 )
+
+# Initialize Liquid-S4 model
+s4_model = LiquidS4Model(input_size=10, hidden_size=64, output_size=10)
+
+# Initialize CfC model
+cfc_model = CfCModel(input_size=10, hidden_size=64, output_size=10)
+
+# Initialize visualizer
+visualizer = NetworkVisualizer(log_dir='runs/experiment')
 
 # Generate and prepare data
 datasets = generate_complex_datasets()
@@ -94,3 +116,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - scikit-learn
 - yfinance
 - seaborn
+- plotly
+- tensorboard
