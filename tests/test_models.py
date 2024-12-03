@@ -1,9 +1,9 @@
 import unittest
 import torch
 import numpy as np
-from liquid_s4 import LiquidS4Model, LiquidS4Cell, LiquidS4Layer
-from cfc_model import CfCModel, CfCCell, CfCLayer
-from visualization import NetworkVisualizer
+from liquid_neural_network.liquid_s4 import LiquidS4Model, LiquidS4Cell, LiquidS4Layer
+from liquid_neural_network.cfc_model import CfCModel, CfCCell, CfCLayer
+from liquid_neural_network.visualization import NetworkVisualizer
 import os
 import shutil
 
@@ -89,7 +89,13 @@ class TestVisualization(unittest.TestCase):
     def tearDown(self):
         """Clean up test directory"""
         if os.path.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
+            # Wait for TensorBoard to release the files
+            import time
+            time.sleep(1)
+            try:
+                shutil.rmtree(self.test_dir)
+            except PermissionError:
+                print(f"Warning: Could not remove {self.test_dir} - it may be in use")
             
     def test_metric_logging(self):
         """Test if metrics are logged correctly"""
