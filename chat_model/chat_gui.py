@@ -1,15 +1,16 @@
 import sys
+import os
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                            QTextEdit, QLineEdit, QPushButton, QLabel)
+                            QTextEdit, QLineEdit, QPushButton, QLabel, QFileDialog)
 from PyQt6.QtCore import Qt
 import torch
-from transformers import AutoTokenizer
+from model import ChatModel
 
 class ChatWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Chat Interface")
-        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle("Shakespeare Chat Interface")
+        self.setGeometry(100, 100, 800, 800)  # Made window taller
         
         # Create central widget and layout
         central_widget = QWidget()
@@ -21,8 +22,16 @@ class ChatWindow(QMainWindow):
         self.chat_display.setReadOnly(True)
         layout.addWidget(self.chat_display)
         
+        # Debug display
+        self.debug_display = QTextEdit()
+        self.debug_display.setReadOnly(True)
+        self.debug_display.setMaximumHeight(200)
+        layout.addWidget(QLabel("Debug Information:"))
+        layout.addWidget(self.debug_display)
+        
         # Input field
         self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("Type your message here...")
         self.input_field.returnPressed.connect(self.send_message)
         layout.addWidget(self.input_field)
         
@@ -31,43 +40,83 @@ class ChatWindow(QMainWindow):
         self.send_button.clicked.connect(self.send_message)
         layout.addWidget(self.send_button)
         
+        # Load Model button
+        self.load_button = QPushButton("Load Model")
+        self.load_button.clicked.connect(self.load_model_dialog)
+        layout.addWidget(self.load_button)
+        
         # Model status
-        self.status_label = QLabel("Model Status: Loading...")
+        self.status_label = QLabel("Model Status: Not Loaded")
         layout.addWidget(self.status_label)
         
-        # Try to load the model
-        try:
-            self.load_model()
-            self.status_label.setText("Model Status: Ready")
-        except Exception as e:
-            self.status_label.setText(f"Model Status: Error - {str(e)}")
+        self.model = None
+        
+        # Welcome message
+        self.chat_display.append("Welcome to Shakespeare Chat! Please load a model to begin.\n")
+        
+        # Redirect stdout to capture debug info
+        sys.stdout = self
+        
+    def write(self, text):
+        """Capture print statements and show in debug display."""
+        self.debug_display.append(text)
     
-    def load_model(self):
+    def flush(self):
+        """Required for stdout redirection."""
+        pass
+    
+    def load_model_dialog(self):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Model File",
+            "checkpoints",
+            "Model Files (*.pth)"
+        )
+        if file_name:
+            try:
+                self.debug_display.clear()
+                self.load_model(file_name)
+                self.status_label.setText(f"Model Status: Loaded - {os.path.basename(file_name)}")
+                self.chat_display.append("Model loaded successfully! You can now chat.\n")
+            except Exception as e:
+                self.status_label.setText(f"Model Status: Error - {str(e)}")
+                self.chat_display.append(f"Error loading model: {str(e)}\n")
+    
+    def load_model(self, model_path):
         # Load the trained model
-        model_path = "chat_model.pth"
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
-            self.model = torch.load(model_path)
-            self.model.eval()
-        except FileNotFoundError:
-            raise Exception("Model file not found. Please train the model first.")
+        checkpoint = torch.load(model_path)
+        config = checkpoint.get('config', {
+            'max_length': 64,
+            'vocab_size': 50257,
+            'n_layer': 6,
+            'n_head': 8
+        })
+        
+        self.model = ChatModel(
+            n_positions=config.get('max_length', 64),
+            vocab_size=config.get('vocab_size', 50257),
+            n_layer=config.get('n_layer', 6),
+            n_head=config.get('n_head', 8)
+        )
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.eval()
+        
+        print(f"Model loaded with config: {config}")
     
     def generate_response(self, user_input):
-        # Tokenize input
-        inputs = self.tokenizer(user_input, return_tensors="pt", max_length=128, truncation=True)
+        if self.model is None:
+            raise Exception("Please load a model first!")
         
-        # Generate response
-        with torch.no_grad():
-            outputs = self.model.generate(
-                inputs["input_ids"],
-                max_length=128,
-                num_return_sequences=1,
-                temperature=0.7
-            )
-        
-        # Decode response
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return response
+        try:
+            # Generate response using the new method
+            response = self.model.generate_text(user_input)
+            return response
+            
+        except Exception as e:
+            import traceback
+            print(f"Generation error: {str(e)}")
+            print(traceback.format_exc())
+            return f"Error generating response: {str(e)}"
     
     def send_message(self):
         user_message = self.input_field.text().strip()
@@ -78,10 +127,13 @@ class ChatWindow(QMainWindow):
         self.chat_display.append(f"You: {user_message}")
         self.input_field.clear()
         
+        # Clear debug display before each generation
+        self.debug_display.clear()
+        
         try:
             # Get model response
             response = self.generate_response(user_message)
-            self.chat_display.append(f"Bot: {response}\n")
+            self.chat_display.append(f"Shakespeare: {response}\n")
         except Exception as e:
             self.chat_display.append(f"Error: {str(e)}\n")
 
