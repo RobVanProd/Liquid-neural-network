@@ -118,3 +118,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - seaborn
 - plotly
 - tensorboard
+
+
+## 🧪 Proof-of-Concept Modules (TorusAI Exploration)
+
+These modules are initial explorations into components inspired by the TorusAI Cognitive Stack. They are standalone proofs-of-concept at this stage.
+
+1.  **`torusai_affect_encoding.py`**
+    *   Implements a 6-dimensional `AffectVector` (valence, arousal, dominance, novelty, certainty, effort) based on Layer 9 (Affective Modulator) of the TorusAI specification.
+    *   Includes an update rule: `A_t[d] = α*A_t-1[d] + β*reward + γ_d*Δ_intero(d)`.
+    *   To run the demonstration: `python torusai_affect_encoding.py`
+
+2.  **`torusai_dcg_hebbian.py`**
+    *   Provides a basic implementation of an affective Hebbian update rule for edge weights in a conceptual Dynamic Concept Graph (DCG), related to Layer 4 and Layer 9 interaction.
+    *   The rule is: `Δw = η * f_valence * f_dominance * pre_act * post_act`.
+    *   Includes weight decay and pruning of edges below a threshold.
+    *   Requires `torusai_affect_encoding.py` to be present.
+    *   To run the demonstration: `python torusai_dcg_hebbian.py`
+
