@@ -120,6 +120,56 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - tensorboard
 
 
+## TorusAI Cognitive Stack Architecture (v0.3)
+
+This outlines the 14-layer cognitive architecture as specified in the Technical Architecture Specification (Revision v0.3, dated May 14, 2025).
+
+1.  **Layer 1: Runtime Substrate**
+    *   Implementation: Python/Rust.
+    *   Purpose: Low-level foundation for the stack.
+2.  **Layer 2: Message Bus & Synchronization Primitives**
+    *   Purpose: Interconnects layers and manages data flow and timing.
+3.  **Layer 3: 64-Node Toroidal Lattice**
+    *   Purpose: Core computational environment.
+    *   Details: Contains rule objects (pattern, action, salience, lastFired, complexity). Rules are selected based on descending salience, ascending lastFired, and ascending complexity. Activation decay is 0.95 per tick.
+4.  **Layer 4: Dynamic Concept Graph (DCG)**
+    *   Purpose: Represents relationships and concepts dynamically.
+    *   Interaction: Coupled with Layer 9 (ABM) via affective Hebbian updates. *(POC for Hebbian update implemented)*
+5.  **Layer 5: (Details TBD)**
+    *   Note: The provided specification focuses heavily on specific layers. Further details for L5-L8 would be added if available.
+6.  **Layer 6: (Details TBD)**
+7.  **Layer 7: (Details TBD)**
+8.  **Layer 8: (Details TBD)**
+9.  **Layer 9: Affective Modulator + Body Schema (ABM)**
+    *   Purpose: Handles affect encoding, interoceptive mapping, and fuzzy affect symbol retrieval. *(POC for Affect Encoding implemented)*
+    *   Details:
+        *   Affect Encoding: Six-dimensional vector `A = [valence, arousal, dominance, novelty, certainty, effort] ∈ [-1,1]^6`, updated via `A_t[d] = α · A_t-1[d] + β · reward + γ_d · Δ_intero(d)`.
+        *   Interoceptive Mapping: 21x2 joint array (θ, ω) maps to affect dimensions.
+        *   Fuzzy Affect Symbol Retrieval: Format 0xFddB, thresholds θ_weight = 0.2, θ_fuzzy = 0.2.
+10. **Layer 10: (Details TBD - Potential location for Internal Reward Engine)**
+    *   Related component: Internal Reward Engine computes `R_int = Σ r_i`, combining prediction error and novelty-driven coherence. Feeds ABM and Actor-Critic model.
+11. **Layer 11: (Details TBD - Potential location for Actor-Critic model)**
+    *   Related component: Actor-Critic model.
+12. **Layer 12: (Details TBD)**
+13. **Layer 13: (Details TBD)**
+14. **Layer 14: High-Level APIs / Embedders**
+    *   Purpose: Provides interfaces for external interaction and embedding into other systems.
+    *   Details: Swagger endpoints `/affect GET`, `/reward/internal POST` for monitoring and ablation.
+
+**Integration Pipeline Highlights (per cognitive tick):**
+*   ABM-derived activation modifiers applied.
+*   Active nodes collected (act > 0.3).
+*   Hebbian updates performed.
+*   Rewards computed.
+*   Affect symbols projected into meta cells.
+*   Lattice primed with top-5 related fuzzy symbols.
+*   Rules fired with decay.
+
+**Validation & Other Notes:**
+*   Integration test harness.
+*   Reference implementation: `torusai_core.js` (~750 LOC).
+*   Ongoing tasks: Rust/WASM port, Grafana telemetry, property-based tests, stress testing.
+
 ## 🧪 Proof-of-Concept Modules (TorusAI Exploration)
 
 These modules are initial explorations into components inspired by the TorusAI Cognitive Stack. They are standalone proofs-of-concept at this stage.
