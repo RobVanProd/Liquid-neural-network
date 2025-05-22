@@ -122,53 +122,185 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## TorusAI Cognitive Stack Architecture (v0.3)
 
-This outlines the 14-layer cognitive architecture as specified in the Technical Architecture Specification (Revision v0.3, dated May 14, 2025).
+Technical Architecture Specification — Revision May 14, 2025
 
-1.  **Layer 1: Runtime Substrate**
-    *   Implementation: Python/Rust.
-    *   Purpose: Low-level foundation for the stack.
-2.  **Layer 2: Message Bus & Synchronization Primitives**
-    *   Purpose: Interconnects layers and manages data flow and timing.
-3.  **Layer 3: 64-Node Toroidal Lattice**
-    *   Purpose: Core computational environment.
-    *   Details: Contains rule objects (pattern, action, salience, lastFired, complexity). Rules are selected based on descending salience, ascending lastFired, and ascending complexity. Activation decay is 0.95 per tick.
-4.  **Layer 4: Dynamic Concept Graph (DCG)**
-    *   Purpose: Represents relationships and concepts dynamically.
-    *   Interaction: Coupled with Layer 9 (ABM) via affective Hebbian updates. *(POC for Hebbian update implemented)*
-5.  **Layer 5: (Details TBD)**
-    *   Note: The provided specification focuses heavily on specific layers. Further details for L5-L8 would be added if available.
-6.  **Layer 6: (Details TBD)**
-7.  **Layer 7: (Details TBD)**
-8.  **Layer 8: (Details TBD)**
-9.  **Layer 9: Affective Modulator + Body Schema (ABM)**
-    *   Purpose: Handles affect encoding, interoceptive mapping, and fuzzy affect symbol retrieval. *(POC for Affect Encoding implemented)*
-    *   Details:
-        *   Affect Encoding: Six-dimensional vector `A = [valence, arousal, dominance, novelty, certainty, effort] ∈ [-1,1]^6`, updated via `A_t[d] = α · A_t-1[d] + β · reward + γ_d · Δ_intero(d)`.
-        *   Interoceptive Mapping: 21x2 joint array (θ, ω) maps to affect dimensions.
-        *   Fuzzy Affect Symbol Retrieval: Format 0xFddB, thresholds θ_weight = 0.2, θ_fuzzy = 0.2.
-10. **Layer 10: (Details TBD - Potential location for Internal Reward Engine)**
-    *   Related component: Internal Reward Engine computes `R_int = Σ r_i`, combining prediction error and novelty-driven coherence. Feeds ABM and Actor-Critic model.
-11. **Layer 11: (Details TBD - Potential location for Actor-Critic model)**
-    *   Related component: Actor-Critic model.
-12. **Layer 12: (Details TBD)**
-13. **Layer 13: (Details TBD)**
-14. **Layer 14: High-Level APIs / Embedders**
-    *   Purpose: Provides interfaces for external interaction and embedding into other systems.
-    *   Details: Swagger endpoints `/affect GET`, `/reward/internal POST` for monitoring and ablation.
+This outlines the 14-layer cognitive architecture governing the TorusAI runtime. Each layer plays a distinct role in enabling symbolic cognition, affect modulation, and adaptive control over meta-rule behavior.
 
-**Integration Pipeline Highlights (per cognitive tick):**
-*   ABM-derived activation modifiers applied.
-*   Active nodes collected (act > 0.3).
-*   Hebbian updates performed.
-*   Rewards computed.
-*   Affect symbols projected into meta cells.
-*   Lattice primed with top-5 related fuzzy symbols.
-*   Rules fired with decay.
+---
 
-**Validation & Other Notes:**
-*   Integration test harness.
-*   Reference implementation: `torusai_core.js` (~750 LOC).
-*   Ongoing tasks: Rust/WASM port, Grafana telemetry, property-based tests, stress testing.
+**Layer 1: Runtime Substrate**
+
+*   Implementation: Python (main), Rust (subsystems), emerging WASM runtime for deployment.
+*   Purpose: Provides memory management, timing loops, tick scheduler, and interfacing for peripheral and telemetry layers.
+
+---
+
+**Layer 2: Message Bus & Synchronization Primitives**
+
+*   Purpose:
+    *   Orchestrates communication between layers via event-based messaging and channelized topic routing.
+    *   Manages tick-based global synchronization using barriers and futures.
+    *   Handles ordered execution pipelines and abortable cascades.
+*   Protocols: Internally defined tick, update, and emit schemas via protobuf-lite objects.
+
+---
+
+**Layer 3: 64-Node Toroidal Lattice**
+
+*   Purpose: Symbolic inference and spatiotemporal pattern propagation.
+*   Details:
+    *   Each node maintains rule_set = {pattern, action, salience, lastFired, complexity}.
+    *   Firing order: descending salience, ascending lastFired, ascending complexity.
+    *   Rules decay with factor 0.95 per tick if not activated.
+    *   Ring-based neighbor influence: ±2 toroidal hops.
+    *   Active node threshold: act > 0.3.
+    *   Output propagates to DCG (L4) and ABM (L9).
+
+---
+
+**Layer 4: Dynamic Concept Graph (DCG)**
+
+*   Purpose: Represents evolving symbolic concepts and their contextual relationships.
+*   Interaction:
+    *   Receives reinforcement via Hebbian updates from ABM-derived affect state. *(POC for Hebbian update implemented)*
+    *   Nodes represent symbolic tokens; edges carry temporal weights.
+    *   Supports attention focus shifting and concept salience decay.
+*   Prototype: Implemented and functional within reference JS core.
+
+---
+
+**Layer 5: Symbolic Memory Module (SMM)**
+
+*   Purpose:
+    *   Stores symbolic sequences (motifs, scripts, rule firings).
+    *   Performs recall and context-sensitive priming based on partial matches.
+*   Mechanism:
+    *   Sequence buffer uses compressed trie + temporal weighting.
+    *   Retrieval strategy uses fuzzy prefix scoring and ABM modulation.
+*   Integration: Feeds Layer 3 lattice with historically successful rule chains.
+
+---
+
+**Layer 6: Episodic Recorder & Replay Buffer (ERRB)**
+
+*   Purpose:
+    *   Logs runtime state snapshots, affective valence, reward signals, and symbolic outputs for retrospective analysis.
+    *   Enables replay of meaningful sequences for training or introspective refinement.
+*   Format:
+    *   Indexed ring buffer (2k depth) with timestamped entries {Tick, AffectiveState, SymbolSequence, Reward, GoalActive}.
+
+---
+
+**Layer 7: Meta-Rule Monitor & Confidence Engine (MRMCE)**
+
+*   Purpose:
+    *   Tracks confidence, activation frequency, and utility of meta-rules over time.
+    *   Performs periodic decay, reinforcement, and arbitration.
+*   Mechanism:
+    *   Composite Score = (1 − λ) × CreditScore + λ × GoalAlignmentScore.
+    *   Confidence updated via adaptive reinforcement (η learning rate).
+    *   Rule pruning threshold: confidence < 0.1 over 5 epochs.
+
+---
+
+**Layer 8: Emergent Goal Discovery & Proposal Engine (EGDPE)**
+
+*   Purpose:
+    *   Detects internal state anomalies and long-term trends.
+    *   Proposes new symbolic goals using trigger → goal_template mappings.
+*   Structure:
+    *   Includes Memory-Driven Refinement (heuristic layers), Trigger Quality Tracking, and Repetition Penalty.
+    *   Output includes provisional goals with confidence_init, trigger_type, and expected_utility.
+*   Evaluation:
+    *   Provisional goals enter Layer 10 (validation loop).
+
+---
+
+**Layer 9: Affective Modulator + Body Schema (ABM)**
+
+*   Purpose: Encodes interoception, affective state, and symbol-affect linking. *(POC for Affect Encoding implemented)*
+*   Details:
+    *   Affect vector A ∈ [-1,1]^6 = [valence, arousal, dominance, novelty, certainty, effort].
+    *   Updated: A_t[d] = α·A_t−1[d] + β·reward + γ_d·Δ_intero(d).
+    *   21x2 body schema (θ, ω) modulates symbol propagation via Hebbian weights.
+    *   Fuzzy affect symbols retrieved via 0xFddB signature; thresholding with θ_weight = 0.2, θ_fuzzy = 0.2.
+
+---
+
+**Layer 10: Internal Reward Engine (IRE)**
+
+*   Purpose:
+    *   Computes internal reinforcement signal R_int = Σ r_i, where each r_i is a weighted function of prediction error, goal proximity, novelty, coherence, and affect match.
+    *   Feeds ABM (L9) and Actor-Critic (L11).
+*   Reward Channels:
+    *   r_novelty, r_prediction_error, r_affect_alignment, r_goal_congruence.
+    *   Tunable weights via YAML config or hot-reload endpoint.
+
+---
+
+**Layer 11: Actor-Critic Meta-Policy Engine (ACMPE)**
+
+*   Purpose:
+    *   Learns macro-behaviors over time via reinforcement on symbolic strategy effectiveness.
+*   Structure:
+    *   Actor proposes meta-rule policies.
+    *   Critic evaluates long-term utility (based on R_int trends, symbolic entropy stability).
+*   Policy Scope:
+    *   Can enable/disable rules, adjust salience schedules, or invoke goal reformulation via Layer 8.
+
+---
+
+**Layer 12: Symbolic Attention Shaping Module (SASM)**
+
+*   Purpose:
+    *   Directs lattice rule firing and concept graph weighting based on recent trends, anomalies, or meta-cognitive prioritization.
+*   Functionality:
+    *   Implements “spotlight” over regions of DCG or rule lattice.
+    *   Uses entropy gradient and ABM modulator feedback.
+*   Result:
+    *   Enables task- or anomaly-focused symbolic shifts (e.g., “explain surprise” behavior).
+
+---
+
+**Layer 13: Introspective Meta-Reporter (IMR)**
+
+*   Purpose:
+    *   Provides narrative and interpretable output summarizing current symbolic state, rule confidence changes, active goals, and affective status.
+*   Output Forms:
+    *   Human-readable symbolic trace summaries.
+    *   Diagnostic reports for debugging or research visibility.
+*   Endpoint: /report/trace.
+
+---
+
+**Layer 14: High-Level APIs / Embedders**
+
+*   Purpose:
+    *   Provides interface to embed the system in external hosts, query internal state, inject symbolic feedback or reward.
+*   Endpoints:
+    *   /affect GET, /reward/internal POST, /goal/active, /meta_rules/status.
+*   Integration:
+    *   WebSocket or REST-based telemetry with optional Grafana binding.
+    *   Intended for runtime ablation experiments, visualization dashboards, or supervisory AI agents.
+
+---
+
+**Integration Cycle (Per Cognitive Tick)**
+
+1.  ABM-derived activation modifiers computed.
+2.  Top-k active symbols collected from lattice (L3).
+3.  Hebbian updates applied between L3, L4, L9.
+4.  Internal rewards computed via L10.
+5.  Affect symbols projected into L3.
+6.  Meta-rules evaluated by L7.
+7.  Actor-Critic policies (L11) optionally adjust strategy.
+8.  Symbolic goals adjusted/refined in L8.
+9.  Introspective trace emitted by L13.
+10. Symbolic attention shape adjusted (L12).
+11. Rules fired (L3), salience decayed.
+12. API data exported (L14).
+
+---
 
 ## 🧪 Proof-of-Concept Modules (TorusAI Exploration)
 
