@@ -227,7 +227,7 @@ This outlines the 14-layer cognitive architecture governing the TorusAI runtime.
 
 ---
 
-**Layer 10: Internal Reward Engine (IRE)**
+**Layer 10: Internal Reward Engine (IRE)** *(POC for IRE implemented)*
 
 *   Purpose:
     *   Computes internal reinforcement signal R_int = Σ r_i, where each r_i is a weighted function of prediction error, goal proximity, novelty, coherence, and affect match.
@@ -317,4 +317,9 @@ These modules are initial explorations into components inspired by the TorusAI C
     *   Includes weight decay and pruning of edges below a threshold.
     *   Requires `torusai_affect_encoding.py` to be present.
     *   To run the demonstration: `python torusai_dcg_hebbian.py`
+
+3.  **`torusai_cognitive_engine/layer_10_ire/reward_engine.py`**
+    *   Implements a basic Internal Reward Engine (IRE) based on Layer 10 of the TorusAI specification.
+    *   Calculates `R_int` by summing weighted components (prediction error, goal proximity, novelty, coherence, affect match) and clips the result to `[0,1]`.
+    *   To run the demonstration: `python -m torusai_cognitive_engine.layer_10_ire.reward_engine`
 
