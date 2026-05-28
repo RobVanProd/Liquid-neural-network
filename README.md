@@ -1,120 +1,29 @@
-# Advanced Liquid Neural Network
+# Liquid-neural-network
 
-A sophisticated self-improving neural network with dynamic temporal learning capabilities, designed for complex time series prediction and pattern recognition.
+This repo contains several PyTorch liquid-network experiments, but the current test suite did not collect on 2026-05-28 because required dependencies and modules were missing.
 
-## 🔬 Features
+## What It Is
 
-- **Dynamic Network Structure**: Self-adapting architecture that evolves based on data complexity
-- **Multi-scale Temporal Processing**: Advanced time series handling at multiple scales
-- **Transformer-based Attention**: Sophisticated pattern recognition using attention mechanisms
-- **Neuro-evolution Module**: Self-improvement capabilities through evolutionary algorithms
-- **Advanced Visualization**: Comprehensive visualization tools for network analysis
-- **Liquid-S4 Architecture**: Enhanced sequence modeling with state-space formulation
-- **CfC Models**: Efficient continuous-time processing
-- **Advanced Visualization Tools**: Comprehensive analysis and debugging capabilities
+`Liquid-neural-network` is a neural-architecture experiment repo. It contains a baseline liquid neural network, larger variants with residual and attention modules, a multi-scale `SuperLiquidNetwork`, Streamlit UI code, synthetic dataset generators, benchmark scaffolding, and tests/examples for time-series style modeling.
 
-## 🛠️ Components
+The interesting part is that the repo explores liquid dynamics alongside attention, multi-scale layers, and evolution-style adaptation hooks in one playground.
 
-1. **super_liquid_network.py**
-   - Core neural network architecture
-   - Multi-scale liquid layers
-   - Self-improvement mechanisms
-   - Visualization utilities
-2. **liquid_s4.py**
-   - Implementation of Liquid-S4 architecture
-3. **cfc_model.py**
-   - Implementation of CfC models
-4. **visualization.py**
-   - Comprehensive visualization tools
-5. **super_test.py**
-   - Complex data generation
-   - Multi-dataset testing framework
-   - Performance evaluation
-6. **test_improvements.py**
-   - Test suite for new features
+## Current Status
 
-## 📊 Supported Datasets
+`python -m pytest -q` did not pass in the documentation environment. Collection failed because `sklearn`, `seaborn`, and a referenced `liquid_s4` module were missing.
 
-- Chaotic Systems (Lorenz, Rössler attractors)
-- Financial Time Series
-- Complex Synthetic Patterns
-- Custom data support
+That means this README should not claim accuracy, benchmark performance, or working end-to-end training. The codebase is best described as an experimental collection of model variants.
 
-## 🚀 Getting Started
+## Tech Stack
 
-### Prerequisites
-```bash
-Python 3.11+
-PyTorch 2.0.1+
-```
+- Python
+- PyTorch
+- NumPy
+- scikit-learn dependency
+- Streamlit
+- Plotly/matplotlib/seaborn dependencies
+- PyQt6 dependency
 
-### Installation
-```bash
-pip install -r requirements.txt
-```
+## Limitations
 
-### Basic Usage
-```python
-from super_liquid_network import SuperLiquidNetwork
-from liquid_s4 import LiquidS4Model
-from cfc_model import CfCModel
-from visualization import NetworkVisualizer
-from super_test import generate_complex_datasets
-
-# Create model
-model = SuperLiquidNetwork(
-    input_size=10,
-    hidden_size=64,
-    output_size=1
-)
-
-# Initialize Liquid-S4 model
-s4_model = LiquidS4Model(input_size=10, hidden_size=64, output_size=10)
-
-# Initialize CfC model
-cfc_model = CfCModel(input_size=10, hidden_size=64, output_size=10)
-
-# Initialize visualizer
-visualizer = NetworkVisualizer(log_dir='runs/experiment')
-
-# Generate and prepare data
-datasets = generate_complex_datasets()
-
-# Train model
-model.train(datasets['chaotic'])
-```
-
-## 🔧 Configuration
-
-Key hyperparameters:
-- `hidden_size`: Size of hidden layers (default: 64)
-- `num_layers`: Number of liquid layers (default: 4)
-- `num_heads`: Number of attention heads (default: 4)
-- `dropout`: Dropout rate (default: 0.1)
-
-## 📈 Performance
-
-The network shows strong performance on:
-- Chaotic time series prediction
-- Market data forecasting
-- Complex pattern recognition
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🔗 Dependencies
-
-- torch
-- numpy
-- matplotlib
-- pandas
-- scikit-learn
-- yfinance
-- seaborn
-- plotly
-- tensorboard
+Dependencies need to be installed and the missing `liquid_s4` reference needs to be resolved before tests can validate behavior. The README should not call the system self-improving unless a specific experiment log backs that claim.
